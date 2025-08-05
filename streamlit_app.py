@@ -1,65 +1,67 @@
-
 import streamlit as st
 import random
+import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Bot Mines Web", layout="centered")
+# Configuración inicial
+st.set_page_config(page_title="Bot Mines Realista", layout="centered")
 
-st.title("💣 Bot Mines – Simulación Visual")
+# Función para generar una cuadrícula con minas aleatorias
+def generar_tablero(filas=5, columnas=5, minas=4):
+    tablero = [[0 for _ in range(columnas)] for _ in range(filas)]
+    posiciones = [(i, j) for i in range(filas) for j in range(columnas)]
+    minas_colocadas = random.sample(posiciones, minas)
+    for i, j in minas_colocadas:
+        tablero[i][j] = -1
+    return tablero, minas_colocadas
 
-# Parámetros
-minas = random.randint(3, 4)
-cuadricula = 5
-max_aciertos = 5
+# Función para simular clics aleatorios y mostrar la partida
+def simular_partida():
+    tablero, minas = generar_tablero()
+    posiciones_disponibles = [(i, j) for i in range(5) for j in range(5)]
+    random.shuffle(posiciones_disponibles)
 
-# Inicialización
-if "mina_pos" not in st.session_state:
-    st.session_state.tablero = [["" for _ in range(cuadricula)] for _ in range(cuadricula)]
-    st.session_state.mina_pos = set()
-    while len(st.session_state.mina_pos) < minas:
-        st.session_state.mina_pos.add((random.randint(0, 4), random.randint(0, 4)))
-    st.session_state.clics = []
-    st.session_state.resultado = None
+    aciertos = 0
+    fallos = 0
+    clics = []
 
-def procesar_clic(x, y):
-    if (x, y) in st.session_state.clics or st.session_state.resultado:
-        return
-    st.session_state.clics.append((x, y))
-    if (x, y) in st.session_state.mina_pos:
-        st.session_state.tablero[x][y] = "❌"
-        st.session_state.resultado = "💥 Fallaste. Fin de la partida."
-    else:
-        st.session_state.tablero[x][y] = "✔️"
-        aciertos = sum(1 for c in st.session_state.clics if c not in st.session_state.mina_pos)
-        if aciertos in [4, 5]:
-            st.session_state.resultado = f"🎉 ¡Ganaste con {aciertos} aciertos!"
+    for pos in posiciones_disponibles:
+        i, j = pos
+        if tablero[i][j] == -1:
+            fallos += 1
+            clics.append((i, j, "❌"))
+            break
         else:
-            st.session_state.resultado = f"Aciertos: {aciertos}"
+            aciertos += 1
+            clics.append((i, j, "✔️"))
+            if aciertos in [4, 5]:
+                break
 
-# Mostrar cuadrícula
-for i in range(cuadricula):
-    cols = st.columns(cuadricula)
-    for j in range(cuadricula):
-        cell = st.session_state.tablero[i][j]
-        if cell:
-            cols[j].markdown(f"### {cell}")
-        elif st.session_state.resultado:
-            cols[j].button(" ", key=f"{i}-{j}", disabled=True)
-        else:
-            if cols[j].button(" ", key=f"{i}-{j}"):
-                procesar_clic(i, j)
-                st.experimental_rerun()
+    return tablero, clics, aciertos, fallos
 
-# Mostrar resultado
-if st.session_state.resultado:
-    aciertos = sum(1 for c in st.session_state.clics if c not in st.session_state.mina_pos)
-    fallos = len(st.session_state.clics) - aciertos
-    st.markdown(f"**{st.session_state.resultado}**")
-    st.markdown(f"- Total de clics: {len(st.session_state.clics)}")
-    st.markdown(f"- ✔️ Aciertos: {aciertos}")
-    st.markdown(f"- ❌ Fallos: {fallos}")
+# Función para mostrar el tablero con matplotlib
+def mostrar_tablero(clics):
+    fig, ax = plt.subplots()
+    ax.set_xticks(range(5))
+    ax.set_yticks(range(5))
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    ax.grid(True)
 
-# Reiniciar
-if st.button("🔁 Reiniciar partida"):
-    for key in ["tablero", "mina_pos", "clics", "resultado"]:
-        st.session_state.pop(key, None)
-    st.experimental_rerun()
+    for i in range(5):
+        for j in range(5):
+            ax.text(j, 4 - i, "", va='center', ha='center', fontsize=20)
+
+    for i, j, simbolo in clics:
+        ax.text(j, 4 - i, simbolo, va='center', ha='center', fontsize=20)
+
+    st.pyplot(fig)
+
+# Interfaz de usuario
+st.title("🎯 Simulador de Bot Mines Realista")
+st.markdown("Haz clic en el botón para simular una partida. Se detiene al llegar a 4 o 5 aciertos, o si cae en una mina.")
+
+if st.button("🔁 Simular partida"):
+    tablero, clics, aciertos, fallos = simular_partida()
+    st.subheader("🧠 Última partida simulada:")
+    mostrar_tablero(clics)
+    st.markdown(f"**Aciertos:** {aciertos}  \n**Fallos:** {fallos}  \n**Total de clics:** {aciertos + fallos}")
