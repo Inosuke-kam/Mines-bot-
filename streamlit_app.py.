@@ -1,2 +1,67 @@
-streamlit
-matplotlib
+import streamlit as st
+import random
+import matplotlib.pyplot as plt
+
+# Configurar la página
+st.set_page_config(page_title="Simulador Mines Bot", layout="centered")
+
+# Crear una cuadrícula 5x5 con 3 o 4 minas aleatorias
+def crear_tablero():
+    minas = random.sample(range(25), random.choice([3, 4]))
+    tablero = [["" for _ in range(5)] for _ in range(5)]
+    for mina in minas:
+        fila, col = divmod(mina, 5)
+        tablero[fila][col] = "M"
+    return tablero
+
+# Simular una partida aleatoria sin repetir clics
+def simular_partida():
+    tablero = crear_tablero()
+    casillas_disponibles = list(range(25))
+    random.shuffle(casillas_disponibles)
+    aciertos = 0
+    fallos = 0
+    clicks_realizados = []
+
+    for intento in casillas_disponibles:
+        fila, col = divmod(intento, 5)
+        if tablero[fila][col] == "M":
+            tablero[fila][col] = "✖️"
+            fallos += 1
+            clicks_realizados.append((fila, col, "fallo"))
+            break
+        else:
+            tablero[fila][col] = "✔️"
+            aciertos += 1
+            clicks_realizados.append((fila, col, "acierto"))
+            if aciertos in [4, 5]:
+                break
+
+    return tablero, aciertos, fallos, clicks_realizados
+
+# Dibujar el tablero visualmente
+def mostrar_tablero(tablero):
+    fig, ax = plt.subplots()
+    ax.set_xticks(range(5))
+    ax.set_yticks(range(5))
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    ax.invert_yaxis()
+    for i in range(5):
+        for j in range(5):
+            casilla = tablero[i][j]
+            if casilla == "✔️":
+                ax.text(j, i, "✔️", ha="center", va="center", fontsize=16)
+            elif casilla == "✖️":
+                ax.text(j, i, "✖️", ha="center", va="center", fontsize=16)
+    ax.grid(True)
+    st.pyplot(fig)
+
+# Botón para simular partida
+st.title("🧠 Última partida simulada:")
+if st.button("🎮 Simular partida"):
+    tablero, aciertos, fallos, clicks = simular_partida()
+    mostrar_tablero(tablero)
+    st.write(f"Aciertos: {aciertos}")
+    st.write(f"Fallos: {fallos}")
+    st.write(f"Total de clics: {aciertos + fallos}")
