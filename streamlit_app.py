@@ -1,67 +1,59 @@
+
 import streamlit as st
 import random
 import matplotlib.pyplot as plt
 
-# Configuración inicial
-st.set_page_config(page_title="Bot Mines Realista", layout="centered")
+# Configuración de la cuadrícula
+rows, cols = 5, 5
+total_cells = rows * cols
 
-# Función para generar una cuadrícula con minas aleatorias
-def generar_tablero(filas=5, columnas=5, minas=4):
-    tablero = [[0 for _ in range(columnas)] for _ in range(filas)]
-    posiciones = [(i, j) for i in range(filas) for j in range(columnas)]
-    minas_colocadas = random.sample(posiciones, minas)
-    for i, j in minas_colocadas:
-        tablero[i][j] = -1
-    return tablero, minas_colocadas
-
-# Función para simular clics aleatorios y mostrar la partida
-def simular_partida():
-    tablero, minas = generar_tablero()
-    posiciones_disponibles = [(i, j) for i in range(5) for j in range(5)]
-    random.shuffle(posiciones_disponibles)
-
+def simular_partida(num_minas=3, max_aciertos=4):
+    minas = set(random.sample(range(total_cells), num_minas))
+    clics_realizados = set()
     aciertos = 0
     fallos = 0
-    clics = []
 
-    for pos in posiciones_disponibles:
-        i, j = pos
-        if tablero[i][j] == -1:
+    while aciertos < max_aciertos:
+        opciones_disponibles = list(set(range(total_cells)) - clics_realizados)
+        if not opciones_disponibles:
+            break
+        casilla = random.choice(opciones_disponibles)
+        clics_realizados.add(casilla)
+
+        if casilla in minas:
             fallos += 1
-            clics.append((i, j, "❌"))
             break
         else:
             aciertos += 1
-            clics.append((i, j, "✔️"))
-            if aciertos in [4, 5]:
-                break
 
-    return tablero, clics, aciertos, fallos
+    return minas, clics_realizados, aciertos, fallos
 
-# Función para mostrar el tablero con matplotlib
-def mostrar_tablero(clics):
-    fig, ax = plt.subplots()
-    ax.set_xticks(range(5))
-    ax.set_yticks(range(5))
+def dibujar_cuadricula_5x5(minas, clics, aciertos, fallos):
+    fig, ax = plt.subplots(figsize=(5, 5))
+    ax.set_xticks([x for x in range(6)])
+    ax.set_yticks([y for y in range(6)])
+    ax.grid(True)
+    ax.set_xlim(0, 5)
+    ax.set_ylim(0, 5)
     ax.set_xticklabels([])
     ax.set_yticklabels([])
-    ax.grid(True)
+    ax.invert_yaxis()
 
-    for i in range(5):
-        for j in range(5):
-            ax.text(j, 4 - i, "", va='center', ha='center', fontsize=20)
+    for idx in range(25):
+        row = idx // 5
+        col = idx % 5
+        if idx in clics:
+            if idx in minas:
+                ax.text(col + 0.5, row + 0.5, '✖️', ha='center', va='center', fontsize=20)
+            else:
+                ax.text(col + 0.5, row + 0.5, '✔️', ha='center', va='center', fontsize=20)
 
-    for i, j, simbolo in clics:
-        ax.text(j, 4 - i, simbolo, va='center', ha='center', fontsize=20)
-
+    plt.title(f"Aciertos: {aciertos} | Fallos: {fallos} | Total clics: {len(clics)}")
     st.pyplot(fig)
 
-# Interfaz de usuario
-st.title("🎯 Simulador de Bot Mines Realista")
-st.markdown("Haz clic en el botón para simular una partida. Se detiene al llegar a 4 o 5 aciertos, o si cae en una mina.")
+st.title("🔮 Simulador de Mines - Estilo Predictivo")
+st.markdown("Cuadrícula 5x5 con 3 minas aleatorias. Se detiene al lograr 4 o 5 aciertos o al fallar.")
 
-if st.button("🔁 Simular partida"):
-    tablero, clics, aciertos, fallos = simular_partida()
-    st.subheader("🧠 Última partida simulada:")
-    mostrar_tablero(clics)
-    st.markdown(f"**Aciertos:** {aciertos}  \n**Fallos:** {fallos}  \n**Total de clics:** {aciertos + fallos}")
+if st.button("🎮 Simular Partida"):
+    minas, clics, aciertos, fallos = simular_partida()
+    dibujar_cuadricula_5x5(minas, clics, aciertos, fallos)
